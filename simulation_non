@@ -1,0 +1,124 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun 15 15:14:06 2020
+
+@author: 网络连接中断
+"""
+def t_non(i):
+    if i==1:
+        return t_1
+    elif i==2:
+        return t_2
+    elif i==3:
+        return t_3
+    elif i==4:
+        return t_4
+    elif i==5:
+        return t_5
+    elif i==6:
+        return t_6
+    elif i==7:
+        return t_7
+    elif i==8:
+        return t_8
+    elif i==9:
+        return t_9
+
+
+def t_measure(i):
+    t=np.array([[S[3*(i-1)]],[S[3*(i-1)+1]],[S[3*(i-1)+2]]])
+    return t
+
+
+
+Y_non=[]
+P_non=[]
+for i in range(1,8):
+  for j in range(i+1,8):
+      M_non=np.matmul(C(i),C(j))
+      T_non=t_non(i)+np.matmul(C(i),t_non(j))
+      M_acc=np.array([[1,0,0],[0,1,0],[0,0,1]])
+      t_0_non=T_non
+      M_non_measure=np.matmul(C_measure_true(i),C_measure_true(j))
+      M_acc_measure=np.array([[1,0,0],[0,1,0],[0,0,1]])
+      for l in range(2,1000000):
+          t_0_non=T_non+np.matmul(M_non,t_0_non)
+          M_acc=np.matmul(M_acc,M_non)+np.array([[1,0,0],[0,1,0],[0,0,1]])
+          M_acc_measure=np.matmul(M_acc_measure,M_non_measure)+np.array([[1,0,0],[0,1,0],[0,0,1]])
+      V,E,U=np.linalg.svd(M_acc)
+      #x=U
+      T_non=np.matmul(np.linalg.inv(V),t_0_non)
+      V_measure,E,U_measure=np.linalg.svd(M_acc_measure)
+      x=U_measure
+      f=np.matmul(x,C_measure_true(i))
+      if E[0]>100:
+          Y_non.append(T_non[0][0]+np.random.randn()/100)
+          u=0
+          for k in range (0,27):
+              if k == 3*(i-1):
+                  P_non.append(E[0]*x[0][0])
+                  u=u+E[0]*t_non(i)[0]
+              elif k == 3*(i-1)+1:
+                  P_non.append(E[0]*x[0][1])
+                  u=u+E[0]*t_non(i)[1]
+              elif k == 3*(i-1)+2:
+                  P_non.append(E[0]*x[0][2])
+                  u=u+E[0]*t_non(i)[2]
+              elif k == 3*(j-1):
+                  P_non.append(E[0]*f[0][0])
+                  u=u+E[0]*t_non(j)[0]
+              elif k == 3*(j-1)+1:
+                  P_non.append(E[0]*f[0][1])
+                  u=u+E[0]*t_non(j)[1]
+              elif k == 3*(j-1)+2:
+                  P_non.append(E[0]*f[0][2])
+                  u=u+E[0]*t_non(j)[2]
+              else:
+                  P_non.append(0)
+                
+b=len(P_non)/27
+s=int(b)    
+D_n=np.array(P_non)
+D_n=D_n.reshape(s,27)
+a_n=np.linalg.matrix_rank(D_n)
+T,E,V=np.linalg.svd(D_n)
+
+t_true=[]
+for i in range(1,10):
+    for j in range(0,3):
+        t_true.append(t_non(i)[j][0])
+
+
+np.matmul(D_n,t_true)-Y_non
+
+
+for i in range(0,len(E)):
+    if i<18:
+        E[i]=E[i]
+    else:
+        E[i]=0
+Eprime = np.array([[E[i] if i==j else 0 for i in range(0,27)] for j in range(0,21)])
+D=np.matmul(T,np.matmul(Eprime,V))
+B_n=np.linalg.pinv(D)
+S=np.matmul(B_n,Y_non)
+
+
+identity=np.array([[1,0,0],[0,1,0],[0,0,1]])
+Q1=identity-C(1)
+Q2=identity-C(2)
+Q3=identity-C(3)
+Q4=identity-C(4)
+Q5=identity-C(5)
+Q6=identity-C(6)
+Q7=identity-C(7)
+
+
+Q=np.zeros((3,3))
+Q[2,:]=Q3[2,:]
+Q[0,:]=Q7[0,:]
+Q[1,:]=Q3[1,:]
+
+T,E,V=np.linalg.svd(Q)
+t_q=np.array([(t_measure(7)-t_non(7))[0],(t_measure(3)-t_non(3))[1],(t_measure(3)-t_non(3))[2]])
+t_error=np.matmul(np.linalg.pinv(Q),t_q)
+t_measure(5)-t_non(5)-np.matmul(Q5,t_error)
