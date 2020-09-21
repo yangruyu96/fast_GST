@@ -1,25 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr 28 08:41:25 2020
-
-@author: 网络连接中断
-"""
-
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import random
+import math
 from scipy.linalg import expm
-def A(i):
-    if i==0:
-        return np.array([[1,0],[0,1]])
-    elif i==1:
-        return np.array([[0,1],[1,0]])
-    elif i==2:
-        return np.array([[0,-1j],[1j,0]])
-    elif i==3:
-        return np.array([[1,0],[0,-1]])
-#定义pauli算符    
-
-def P(i,k):
+from scipy.linalg import pinv
+from tqdm import tqdm
+import xlwt
+def P(i,k,h):
     y=0
     for j in range(1,4):
         for l in range(1,4):
@@ -33,47 +20,78 @@ def H_PTM(i,k,H,p):
     x=np.matmul(H,A(i))-np.matmul(A(i),H)
     #x=np.matmul(np.matmul(expm(1j*H*p),A(i)),expm(-1j*H*p))
     return np.trace(np.matmul(x,A(k)))
-#定义Hamiltonian的Pauli transfer matrix
+def M_PTM(i,k,M):
+    x=np.matmul(np.matmul(M,A(i)),(M.T).conjugate())
+    return np.trace(np.matmul(x,A(k)))
+def A(i):
+    if i==0:
+        return np.array([[1,0],[0,1]])
+    elif i==1:
+        return np.array([[0,1],[1,0]])
+    elif i==2:
+        return np.array([[0,-1j],[1j,0]])
+    elif i==3:
+        return np.array([[1,0],[0,-1]])
 
-H1=random.random(size=(2,2))
-H2=random.random(size=(2,2))*1j
-H=H1+H2
-H=H+(H.T).conjugate()#生成一个Hermitian matrix，代表Hamiltonian
+I_3 = np.array([[1,0,0],[0,1,0],[0,0,1]])
+I_2 = np.array([[1,0],[0,1]])
 
-        #得到h的ptm
-p=0.0000001#一个极短的演化时间
-H_0=np.zeros((4,4))
-for i in range(0,4):
-    for j in range(0,4):
-        H_0[i,j]=-1j*H_PTM(i,j,H,p)/2
-#得到-iH的ptm，自然单位制。
+def gen_SPAM(k,i):
+    np.random.seed(1)
+    h1 = np.array([[np.abs(random.randn()), 0, 0], [0, np.abs(random.randn()), 0], [0, 0, np.abs(random.randn())]])
+    h2 = random.randn(3, 3)
+    h3 = random.randn(3, 3) * 1j  # j就是python的虚数单位
+    h4 = h2 + h3
+    T, E, V = np.linalg.svd(h4)  # 目的是找一个酉变换
+    h_0 = np.matmul(np.matmul(T, h1), np.linalg.inv(T))   # 得到一个正定的h
+    H1 = random.randn(2, 2)
+    H2 = random.randn(2, 2) * 1j
+    H = H1 + H2
+    H = (H + (H.T).conjugate())
+    np.random.seed(10*k+i)
+    h1 = np.array([[np.abs(random.randn()), 0, 0], [0, np.abs(random.randn()), 0], [0, 0, np.abs(random.randn())]])
+    h2 = random.randn(3, 3)
+    h3 = random.randn(3, 3) * 1j  # j就是python的虚数单位
+    h4 = h2 + h3
+    T, E, V = np.linalg.svd(h4)  # 目的是找一个酉变换
+    h = np.matmul(np.matmul(T, h1), np.linalg.inv(T))/100 + h_0# 得到一个正定的h
+    H1 = random.randn(2, 2)
+    H2 = random.randn(2, 2) * 1j
+    H_new = H1 + H2
+    H_new = (H_new + (H_new.T).conjugate())/100 + H  # 生成一个Hermitian matrix，代表Hamiltonian
+    L = np.zeros((4, 4))
+    for i in range(0, 4):
+        for j in range(0, 4):
+            L[i, j] = P(i,j,h)
+            # 得到h的ptm
+    #p = 0.01 # 一个极短的演化时间
+    H_0 = np.zeros((4, 4))
+    for i in range(0, 4):
+        for j in range(0, 4):
+            H_0[i, j] = -1j * H_PTM(i, j, H_new, p) / 2
+    # 得到-iH的ptm，自然单位制。
+    q = expm(H_0 * p *100 + L * p)
+    print(q)
+    return q
 
-h1=np.array([[np.abs(random.random()),0,0],[0,np.abs(random.random()),0],[0,0,np.abs(random.random())]])
-h2=random.random(size=(3,3))
-h3=random.random(size=(3,3))*1j#j就是python的虚数单位
-h4=h2+h3
-h4=np.matmul(h4,(h4.T).conjugate())
-T,E,V=np.linalg.svd(h4)#目的是找一个酉变换
-#h=np.matmul(np.matmul(T,h1),np.linalg.inv(T))#得到一个正定的h
-a,b=np.linalg.eig(h)#检查有没有算错
-h=h4
-L=np.zeros((4,4))
-for i in range(0,4):
-    for j in range(0,4):
-        L[i,j]=P(i,j)
-q_7=expm(H_0*p*100+L*p)#对时间积分后是个e指数
-#print(q)
-a,b=np.linalg.eig(q)
-q_d_7=np.delete(q_7,0,axis=0)
-q_d_7=np.delete(q_d_7,0,axis=1)
-def error_rate(X):
-    return 1-(np.trace(X)-1)/3
-#计算错误率p
 
-print(error_rate(expm(H_0*p+L*p)))
-print(q)
-test = 1 + 1
+a_ideal = np.loadtxt(r"C:\Users\yangruyu\Desktop\gate1_ideal")
+C_ideal = np.reshape(a_ideal,(7,4,4))
+workbook = xlwt.Workbook(encoding = 'utf-8')
+def error_rate(X,Y):
+    return 1-(np.trace(np.matmul(X,(Y.T).conjugate())) - 1 )/3
 
 
+for k in range(15):
+    p = 10 ** (-5.5 - k/5)
+    worksheet = workbook.add_sheet('{}'.format(k), cell_overwrite_ok=True)
+    for i in range(7):
+        S = gen_SPAM(k,i)
+        x = np.matmul(S,C_ideal[i,:,:])
+        a = error_rate(x,C_ideal[i,:,:])
+        h,l = x.shape
+        for h_0 in range(h):
+            for l_0 in range(l):
+                worksheet.write(4*i+h_0,l_0,x[h_0,l_0])
 
-
+workbook.save('gate_1.xls')
