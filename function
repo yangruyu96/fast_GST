@@ -19,190 +19,37 @@ import random
 
 
 
-def C_total(i):
-    C_0=np.column_stack((t_non(i),C(i)))
-    m=np.array([[1,0,0,0]])
-    C_0=np.row_stack((m,C_0))
-    return C_0
-
-
-def C_measure_true(i):
-    return C_measure(i)-np.matmul(t,C_ideal(i))+np.matmul(C_ideal(i),t)
-
-
-def t_measure_true(i):
-    return t_measure(i)-np.matmul(identity-C(i),t_error)
-
-def C_total_measure(i):
-    C_0=np.column_stack((t_measure_true(i),C_measure_true(i)))
-    m=np.array([[1,0,0,0]])
-    C_0=np.row_stack((m,C_0))
-    return C_0
-
-def C_total_ideal(i):
-    C_0=np.column_stack((np.array([[0],[0],[0]]),C_ideal(i)))
-    m=np.array([[1,0,0,0]])
-    C_0=np.row_stack((m,C_0))
-    return C_0
-
-def circuit_true(M,i):
-    return np.matmul(M,C_total(i))
-
-
-def circuit_measure(M,i):
-    return np.matmul(M,C_total_measure(i))
-
-def circuit_ideal(M,i):
-    return np.matmul(M,C_total_ideal(i))
-M_0=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-M_1=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-
-
-y_error_p=[]
-x_acc_p=[]
-
-y_error_p_i=[]
-x_acc_p_i=[]
-y_error_i=[]
-x_acc_i=[]
-for k in range(0,800,10):
-    print(k)
-    k=k/100
-    n=math.floor(10**k)
-    x_acc_p_i.append(math.log10(n))
-    M_0=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-    M_1=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-    for i in range(0,n):
-        j=random.randint(1,8)
-        M_0=circuit_ideal(M_0,j)
-        M_1=circuit_true(M_1,j)
-    state=np.array([[1,0,0,1]])
-    state_0=np.matmul(M_0,state.T)
-    state_1=np.matmul(M_1,state.T)
-    y_error_p_i.append(math.log10(np.linalg.norm(state_0-state_1)))
-
-x_acc=[x_acc[i] for i in range(0,600)]
-plt.xlabel('log10(n)')
-plt.ylabel('log10(error)')
-plt.scatter((x_acc_p_i),(y_error_p_i),label='ideal')
-plt.scatter(x_acc_p,y_error_p,label='prediction')
-plt.legend()
-plt.show()
-
-x_norm=[]
-y_norm=[]
-for i in range(1,8):
-    x_norm.append(math.log10(np.linalg.norm(C_total_measure(i)-C_total(i))))
-    y_norm.append(math.log10(np.linalg.norm(C_total_ideal(i)-C_total(i))))
-
-plt.scatter(x_norm,y_norm,label='p~10^(-6)')
 
 
 
 
-x_norm_re=[]
-y_norm_re=[]
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_1-c_re_1)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(1)-c_re_1)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_2-c_re_2)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(2)-c_re_2)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_3-c_re_3)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(3)-c_re_3)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_4-c_re_4)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(4)-c_re_4)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_5-c_re_5)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(5)-c_re_5)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_6-c_re_6)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(6)-c_re_6)))
-x_norm_re.append(math.log10(np.linalg.norm(c_rem_7-c_re_7)))
-y_norm_re.append(math.log10(np.linalg.norm(C_total_ideal(7)-c_re_7)))
-
-plt.xlabel('log10(norm1)')
-plt.ylabel('log10(norm2)')
-plt.scatter(x_norm,y_norm,label='p~10^(-6)')
-plt.scatter(x_norm_re,y_norm_re,label='p~10^(-4)')
-plt.legend()
-plt.show()
-
-1-np.matmul(state_1.T,state_0)/2
-
-def matrix_pencil(time_series_data,L,N_poles,cutoff=10**(-2)):
-    N=len(time_series_data)
-    Y = sc.matrix([time_series_data[i:L+i+1] for i in range(0,N-L)]) 
-    U,S,Vh = sc.linalg.svd(Y) 
-    Vh =sc.matrix(Vh)
-    U = sc.matrix(U)
-    #print(S)
-    Scutoff = S[S>cutoff*S[0]]
-    if len(Scutoff)<N_poles:
-        Sprime = sc.matrix([[S[i] if i==j else 0 for i in range(len(Scutoff))] for j in range(N-L)])
-        Vhprime = Vh[0:len(Scutoff),:]
-    else:
-        Sprime = sc.matrix([[S[i] if i==j else 0 for i in range(N_poles)] for j in range(N-L)])
-        Vhprime = Vh[0:N_poles,:]
-    Vhprime1 = Vhprime[:,0:-1]
-    Vhprime2 = Vhprime[:,1:]
-    Y = la.pinv(Vhprime1.H)*Vhprime2.H
-    poles, vecs = sc.linalg.eig(Y)
-    '''
-    if len(poles)==3:
-        return poles.sum()
-    elif len(poles)==1:
-        return 3*poles[0]
-    elif poles[0]<0:
-        return 2*poles[0]+poles[1]
-    elif poles[0]>0:
-        return 2*poles[1]+poles[0]
-    '''
-    return poles.sum()
 
 
-def spectrum(map_with_noise):
-    i=0
-    #spam=np.random.randn(3,3)/5
-    y_list=[]
-    a=np.array([[1,0,0],[0,1,0],[0,0,1]])
-    while i<500:
-      i=i+1
-      b=a
-      a=np.matmul(a,map_with_noise)
-      c=b+np.random.randn(3,3)/10
-      #print(b[0,0)
-      #if np.max(b)<1:
-          #print(b)
-          #if np.min(b)>-1:
-      y_list.append(c[0,0]+c[1,1]+c[2,2])
-              #y_list.append((1)*(b[0,0]+np.random.randn()*((((1+b[0,0])/2)*(1-(1+b[0,0])/2))**(1/2))/100)+(1)*(b[1,1]+np.random.randn()*((((1+b[1,1])/2)*(1-(1+b[1,1])/2))**(1/2))/100)+(1)*(b[2,2]+np.random.randn()*(((1+(b[1,1])/2)*(1-(1+b[1,1])/2))**(1/2))/100))
-#print(y_list)
-    X=np.arange(0,441,1)
-    #print(len(y_list))
-    #popt,pcov=curve_fit(trace,X,y_list,maxfev=20000000)
-    return y_list
 
-
-equa_set=np.zeros((100,4))
-
-def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
+def different_eigenvalues(x1,x2,x3,k,sp_value,dishu):
+    global b_s_new
+    global a_s_new
+    global c_s_new
     y_another=[]
     variance=[]
-    for i in range (0,k+1,1):
+    for i in list(np.arange(0,k+1,1)):
         sample_real=[]
         sample_imag=[]
         forward_1=[]
-        forward_2=[]        
-        n=2**i
+        forward_2=[]
+        n=dishu**i
         n=find_exp(n,sp_value)
-        d1=(x1**n+x2**n+x3**n).real+np.random.randn()/100
-        d2=(x1**(2*n)+x2**(2*n)+x3**(2*n)).real+np.random.randn()/100
-        d3=(x1**(3*n)+x2**(3*n)+x3**(3*n)).real+np.random.randn()/100
-
+        print(n)
+        d1=(x1**n+x2**n+x3**n).real#+np.random.randn()/100
+        d2=(x1**(2*n)+x2**(2*n)+x3**(2*n)).real#+np.random.randn()/100
+        d3=(x1**(3*n)+x2**(3*n)+x3**(3*n)).real#+np.random.randn()/100
         b=d1/3+(1-(3**(1/2))*1j)*(18*(d1**2)-54*d2)/(18*(2**(2/3))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*(18*(d1**2)-54*d2)**3+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2)))**(1/3))-(1+(3**(1/2))*1j)*(1/(36*(2**(1/3))))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*((18*(d1**2)-54*d2)**3)+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2))**(1/3))
         a=d1/3-(18*(d1**2)-54*d2)/(9*(2**(2/3))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*(18*(d1**2)-54*d2)**3+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2)))**(1/3))+(1/(18*(2**(1/3))))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*((18*(d1**2)-54*d2)**3)+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2))**(1/3))
         c=d1/3+(1+(3**(1/2))*1j)*(18*(d1**2)-54*d2)/(18*(2**(2/3))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*(18*(d1**2)-54*d2)**3+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2)))**(1/3))-(1-(3**(1/2))*1j)*(1/(36*(2**(1/3))))*((432*(d1**3)-1944*d1*d2+1944*d3+(4*((18*(d1**2)-54*d2)**3)+(432*(d1**3)-1944*d1*d2+1944*d3)**2)**(1/2))**(1/3))
         a_s=a**(1/n)
         b_s=b**(1/n)
         c_s=c**(1/n)
-        
+
         '''
         a_0,b_0,c_0=symbols('a_0,b_0,c_0')
         x=solve([a_0+b_0+c_0-d1,a_0**2+b_0**2+c_0**2-d2,a_0**3+b_0**3+c_0**3-d3],[a_0,b_0,c_0])
@@ -214,7 +61,7 @@ def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
         c_s=c**(1/n)
         '''
         #print(n,a,b,c)
-        if i>0:
+        if i>0 and len(y_another)>0:
             #print(y_another)
             if np.abs(c.conjugate()-b)<0.01:
                 #print(a,b,c)
@@ -231,7 +78,7 @@ def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
                 else:
                     position=forward_2.index(min(forward_2))
                     c_s_new=c_s*complex(exp(2j*math.pi*position/n))
-                    b_s_new=b_s*complex(exp(-2j*math.pi*position/n)) 
+                    b_s_new=b_s*complex(exp(-2j*math.pi*position/n))
                     a_s_new=np.abs(a_s)
                 y_another.append(b_s_new)
                 #print(a_s_new,b_s_new,c_s_new)
@@ -250,7 +97,7 @@ def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
                 else:
                     position=forward_2.index(min(forward_2))
                     a_s_new=a_s*complex(exp(2j*math.pi*position/n))
-                    b_s_new=b_s*complex(exp(-2j*math.pi*position/n)) 
+                    b_s_new=b_s*complex(exp(-2j*math.pi*position/n))
                     c_s_new=np.abs(c_s)
                 y_another.append(b_s_new)
                 #print(a_s_new,b_s_new,c_s_new)
@@ -273,7 +120,7 @@ def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
                     b_s_new=np.abs(b_s)
                 y_another.append(a_s_new)
                 #print(a_s_new,b_s_new,c_s_new)
-        else:
+        elif i == 0 and len(y_another) == 0:
          #error.append(b_s+a_s+c_s)
             if np.abs(c.conjugate()-b)<0.01:
                 b_s_new=b_s
@@ -291,17 +138,16 @@ def different_eigenvalues(x1,x2,x3,k,sp_value,op_value=0):
                 b_s_new=np.abs(b_s)
                 y_another.append(a_s_new)
             #print(a_s_new,b_s_new,c_s_new)
-    
+        elif i>0 and len(y_another)==0:
+            pass
+    #print(a_s_new,b_s_new,c_s_new,x1,x2,x3)
     return b_s_new+c_s_new+a_s_new
-    #return y_another 
+    #return y_another
 
-def measure(i,j,k,l):
-    a=matrix_pencil(spectrum(np.matmul(C(i),np.matmul(C(j),np.matmul(C(k),C(l))))),20,3,10**(-1))
-    b=np.trace(np.matmul(C_ideal(i),np.matmul(C_ideal(j),np.matmul(C_ideal(k),C_ideal(l)))))
-    c=a.sum()-b
-    return c
+
 
 def find_exp(x,sp_value):
+    #print(x,sp_value)
     n=(sp_value-1)*math.floor(x/(sp_value-1))+1
     return n
 
@@ -310,30 +156,54 @@ def find_exp(x,sp_value):
 M=np.array([[1,0,0],[0,0,0.9],[0,1,0]])
 
 def error_rate(X,Y):
-    return 1-(np.trace(np.matmul(X,(Y.T).conjugate())))/3
+    Y = (Y.T).conjugate()
+    return 1-(np.trace(np.matmul(X,Y)) + 2 + 1)/6
 
 def find_sp(a):
     for i in range(3,100):
-        if np.abs(a[0]**i-a[0])<0.1 and np.abs(a[1]**i-a[1])<0.1:
+        if np.abs(a[0]**i-a[0])<0.2 and np.abs(a[1]**i-a[1])<0.2:
+            #print(i)
             return i
-            break
+
+
+
         #elif i>30:
-        #   return 10
-
-    
+            #return 10
 
 
-def trace_measure(M_noise,M_ideal):
-    n=int(0.4/error_rate(M_noise,M_ideal))
+def chengfa(a,b,c,d):
+    return np.matmul(np.matmul(np.matmul(a,b),c),d)
+
+def trace_measure(M_noise,M_ideal,M_ideal_0,m,dishu,re_times=0):
+    #n=int(0.4/(np.abs(error_rate(M_noise,M_ideal_0))))
+    n = 100
+    #n = 10**re_times
+    #print(error_rate(M_noise,M_ideal))
+    #print(n)
     a,b=np.linalg.eig(M_noise)
-    a_0,b_0=np.linalg.eig(M_ideal)
-    sp_value=find_sp(a)
-    m=math.floor(math.log(n,2))
-    trace=different_eigenvalues(a[0],a[1],a[2],m,sp_value)
+    #print(a)
+    a_i,b_i=np.linalg.eig(M_ideal)
+    sp_value=find_sp(a_i)
+    if m > 13:
+        dishu = dishu
+        m=math.floor(math.log(n,dishu))
+        #m = re_times
+    elif m==13:
+        dishu = dishu
+        m=math.floor(math.log(n,dishu))
+        #m = re_times
+    elif m>7:
+        dishu = dishu
+        m=math.floor(math.log(n,dishu)) 
+    else:
+        dishu = dishu
+        m=math.floor(math.log(n,dishu)) 
+        #print(m)
+    trace=different_eigenvalues(a[0],a[1],a[2],m,sp_value,dishu)
     return trace
 
-def equa_right_meas(M_noise,M_ideal):
-    return trace_measure(M_noise,M_ideal)-np.trace(M_ideal)
+def equa_right_meas(M_noise,M_ideal,M_ideal_0,n,dishu,re_times=0):
+    return trace_measure(M_noise,M_ideal,M_ideal_0,n,dishu)-np.trace(M_ideal_0)
 '''
 C_1_ideal=np.array([[1/2,(3**(1/2))/2,0],[-(3**(1/2))/2,1/2,0],[0,0,1]])
 C_9=np.array([[0,0,-1],[1,0,0],[0,-1,0]])
@@ -347,22 +217,7 @@ find_sp(a)
 a,b=np.linalg.eig(zuhe_ideal(1,4,7,7))
 equa_right_meas(zuhe_noise(2,2,2,2),zuhe_ideal(2,2,2,2))
 '''
-C_1_ideal=np.array([[1/2,(3**(1/2))/2,0],[-(3**(1/2))/2,1/2,0],[0,0,1]])
-C_2_ideal=np.array([[0,1,0],[0,0,-1],[-1,0,0]])
-C_3_ideal=np.array([[0,0,-1],[1,0,0],[0,-1,0]])
-C_4_ideal=np.array([[0,0,1],[1,0,0],[0,1,0]])
-C_5_ideal=np.array([[0,1,0],[0,0,1],[1,0,0]])
-C_6_ideal=np.array([[0,-1,0],[0,0,-1],[1,0,0]])
-C_7_ideal=np.array([[0,0,1],[-1,0,0],[0,-1,0]])
 
-
-C_1=np.matmul(C_1_ideal,q_d_1)
-C_2=np.matmul(C_2_ideal,q_d_2)
-C_3=np.matmul(C_3_ideal,q_d_3)
-C_4=np.matmul(C_4_ideal,q_d_4)
-C_5=np.matmul(C_5_ideal,q_d_5)
-C_6=np.matmul(C_6_ideal,q_d_6)
-C_7=np.matmul(C_7_ideal,q_d_7)
 
 
 
